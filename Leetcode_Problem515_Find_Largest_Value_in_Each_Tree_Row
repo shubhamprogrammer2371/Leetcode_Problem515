@@ -1,0 +1,166 @@
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     struct TreeNode *left;
+ *     struct TreeNode *right;
+ * };
+ */
+/**
+ * Note: The returned array must be malloced, assume caller calls free().
+ */
+
+void dfs(struct TreeNode* root, int depth, int** dp, int* dpSize){
+    if (root == NULL)
+        return;
+    if (depth >= *dpSize)
+    {
+        *dpSize += 1;
+        *dp = (int*)realloc(*dp, (*dpSize)*sizeof(int));
+        (*dp)[depth] = root->val;
+    }
+    else
+    {
+        if ((*dp)[depth] < root->val)
+            (*dp)[depth] = root->val;
+    }
+    dfs(root->left, depth+1, dp, dpSize);
+    dfs(root->right, depth+1, dp, dpSize);
+}
+int* largestValues(struct TreeNode* root, int* returnSize){
+    *returnSize = 0;
+    int* result = NULL;
+    dfs(root,0,&result,returnSize);
+    return result;
+}
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+struct Queue {
+    int front, back, size;
+    unsigned int capacity;
+    struct TreeNode* array;
+};
+struct Queue* createQueue(unsigned int capacity) 
+{
+    struct Queue* queue = (struct Queue*)malloc(sizeof(struct Queue));
+    queue->capacity = capacity;
+    queue->front = 0;
+    queue->size = 0;
+    queue->back = capacity - 1;
+    queue->array = (struct TreeNode*)malloc(queue->capacity * sizeof(struct TreeNode));
+    return queue;
+}
+bool isFull(struct Queue* queue) 
+{
+    return (queue->size == queue->capacity);
+}
+bool isEmpty(struct Queue* queue) 
+{
+    return !(queue->size);
+}
+void push(struct Queue* queue, struct TreeNode* item) 
+{
+    if (isFull(queue)) 
+        return;
+    queue->back = (queue->back + 1) % queue->capacity;
+    queue->array[queue->back] = *item;
+    queue->size = queue->size + 1;
+}
+void pop(struct Queue* queue) 
+{
+    if (isEmpty(queue)) 
+        return;
+    queue->front = (queue->front + 1) % queue->capacity;
+    queue->size = queue->size - 1;
+}
+struct TreeNode* front(struct Queue* queue) 
+{
+    if (isEmpty(queue))
+        return NULL;
+    return &queue->array[queue->front];
+}
+struct TreeNode* back(struct Queue* queue) 
+{
+    if (isEmpty(queue))
+        return NULL;
+    return &queue->array[queue->back];
+}
+void freeQueue(struct Queue* queue) 
+{
+    if (!queue) 
+        return;
+    free(queue->array);
+    free(queue);
+}
+int* largestValues(struct TreeNode* root, int* returnSize) 
+{
+    *returnSize = 0;
+    if (!root)
+        return NULL;
+    struct Queue* queue = createQueue(10000);
+    push(queue, root);
+    int* arr = (int*)calloc(10000, sizeof(int));
+    while (!isEmpty(queue)) 
+    {
+        const int n = queue->size;
+        int row_max = INT_MIN;
+        for (int i = 0; i < n; ++i) 
+        {
+            struct TreeNode* temp = front(queue); 
+            pop(queue);
+            row_max = fmax(row_max, temp->val);
+            if (temp->left != NULL) 
+                push(queue, temp->left);
+            if (temp->right != NULL) 
+                push(queue, temp->right);
+        }
+        arr[(*returnSize)++] = row_max;
+    }
+    freeQueue(queue);
+    return arr;
+}
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+
+struct Tree;
+typedef struct Tree Tree;
+struct Tree
+{
+	int val;
+	Tree * children[2];
+};
+
+#define MAX_DEPTH 1000
+#define MAX_NODE 10000
+
+int * largestValues(const Tree * const pRoot,int * const pRetsLen)
+{
+	int * const rets = (int *)malloc(sizeof (int) * MAX_DEPTH);
+	*pRetsLen = 0;
+	const Tree * bfsQueue[MAX_NODE];
+	int head = 0, tail = 0;
+	if (pRoot)
+		bfsQueue[tail++] = pRoot;
+	for (int curLayer = 0; head < tail; curLayer++)
+    {
+		int curLayerMax = bfsQueue[head]->val;
+		for (int i = head + 1; i < tail; i++)
+			curLayerMax = (bfsQueue[i]->val > curLayerMax) ? bfsQueue[i]->val : curLayerMax;
+		rets[(*pRetsLen)++] = curLayerMax;
+		for (int oldTail = tail; head < oldTail; )
+        {
+			const Tree * const pCur = bfsQueue[head++];
+			for (int i = 0; i < 2; i++)
+				if (pCur->children[i])
+					bfsQueue[tail++] = pCur->children[i];
+		}
+	}
+	return rets;
+}
